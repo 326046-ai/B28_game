@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ネコトモ - Neko Tomo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-bg: #fff0f5;
+            --panel-bg: rgba(255, 255, 255, 0.7);
+            --cat-primary: #ffffff;
+            --cat-spot: #f59e0b; /* オレンジ系 */
+            --cat-ear-inner: #fca5a5;
+        }
+
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            /* 暖かみのある背景グラデーション */
+            background: linear-gradient(to bottom right, #ffe2e2, #fff3cd, #e2f0cb);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            touch-action: manipulation; /* ダブルタップズーム防止 */
+            user-select: none;
+            overflow: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* グラスモーフィズムパネル */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        /* ネコのアニメーション設定 */
+        .cat-container {
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+        
+        .cat-container:active {
+            transform: scale(0.95);
+        }
+
+        /* 呼吸アニメーション */
+        .breathe {
+            animation: breathe 3s ease-in-out infinite;
+            transform-origin: bottom center;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scaleY(1) scaleX(1); }
+            50% { transform: scaleY(1.03) scaleX(0.98); }
+        }
+
+        /* しっぽを振るアニメーション */
+        .tail-anim {
+            transform-origin: 150px 140px;
+            animation: wagTail 4s ease-in-out infinite;
+        }
+
+        @keyframes wagTail {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(15deg); }
+        }
+
+        /* まばたきアニメーション */
+        .eye-anim {
+            transform-origin: 100px 90px;
+            animation: blink 4s infinite;
+        }
+
+        @keyframes blink {
+            0%, 95%, 100% { transform: scaleY(1); }
+            97.5% { transform: scaleY(0.1); }
+        }
+
+        /* アクション時のエフェクト（跳ねる） */
+        .jump {
+            animation: jumpAnim 0.5s cubic-bezier(0.36, 0, 0.66, -0.56);
+        }
+
+        @keyframes jumpAnim {
+            0%, 100% { transform: translateY(0) scaleY(1); }
+            50% { transform: translateY(-30px) scaleY(1.1); }
+        }
+
+        /* 吹き出しのアニメーション */
+        .bubble-enter {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* パーティクル（ハートやキラキラ） */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            font-size: 1.5rem;
+            animation: floatUp 1s ease-out forwards;
+            z-index: 50;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+            100% { opacity: 0; transform: translateY(-60px) scale(1.5) rotate(20deg); }
+        }
+
+        /* カスタムプログレスバー */
+        .progress-bar-inner {
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.5s ease;
+        }
+
+        /* 隠し要素用 */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 text-gray-800">
+
+    <!-- ヘッダー部（ステータス） -->
+    <header class="w-full max-w-lg glass-panel rounded-3xl p-4 flex justify-between items-center z-10">
+        <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-2xl shadow-inner border-2 border-pink-200">
+                🏆
+            </div>
+            <div>
+                <div class="text-xs text-gray-500 font-bold tracking-wider">なかよし度</div>
+                <div class="text-xl font-black text-pink-500" id="level-text">Lv.1</div>
+            </div>
+        </div>
+        
+        <div class="flex-1 ml-4 relative">
+            <div class="text-xs text-right text-gray-500 font-bold mb-1 mr-1" id="exp-text">0 / 100 EXP</div>
+            <div class="h-3 w-full bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                <div id="exp-bar" class="h-full bg-gradient-to-r from-pink-300 to-pink-500 progress-bar-inner w-0"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- メイン表示領域（ネコと吹き出し） -->
+    <main class="flex-1 w-full max-w-lg relative flex flex-col items-center justify-center my-6 z-0">
+        
+        <!-- 吹き出し -->
+        <div id="speech-bubble" class="glass-panel absolute top-4 sm:top-10 px-6 py-3 rounded-2xl font-bold text-gray-700 shadow-lg bubble-enter transform -translate-y-4">
+            にゃーん♪
+            <!-- 吹き出しのしっぽ -->
+            <div class="absolute w-4 h-4 bg-white/70 border-r border-b border-white/50 backdrop-blur-md transform rotate-45 -bottom-2 left-1/2 -translate-x-1/2"></div>
+        </div>
+
+        <!-- ネコSVGコンテナ -->
+        <div id="cat-wrapper" class="cat-container mt-16 p-4">
+            <svg id="cat-svg" viewBox="0 0 200 200" class="w-64 h-64 sm:w-80 sm:h-80 drop-shadow-2xl breathe">
+                <!-- 影 -->
+                <ellipse cx="100" cy="185" rx="70" ry="8" fill="rgba(0,0,0,0.1)" />
+                
+                <!-- しっぽ -->
+                <g class="tail-anim">
+                    <path d="M140,150 Q190,170 180,90" stroke="var(--cat-spot)" stroke-width="18" stroke-linecap="round" fill="none" />
+                </g>
+                
+                <!-- 体（ぽっちゃり） -->
+                <path d="M40,165 C40,90 160,90 160,165 C160,180 40,180 40,165 Z" fill="var(--cat-primary)" />
+                <!-- 体の模様 -->
+                <path d="M120,120 C120,95 155,95 155,160 C135,160 120,140 120,120 Z" fill="var(--cat-spot)" />
+                <!-- 前足 -->
+                <path d="M60,165 Q60,185 75,185 Q90,185 90,165 Z" fill="var(--cat-primary)" />
+                <path d="M110,165 Q110,185 125,185 Q140,185 140,165 Z" fill="var(--cat-primary)" />
+                <path d="M65,180 L85,180 M115,180 L135,180" stroke="rgba(0,0,0,0.1)" stroke-width="2" stroke-linecap="round" />
+
+                <!-- 頭 -->
+                <circle cx="100" cy="85" r="55" fill="var(--cat-primary)" />
+                <!-- 頭の模様 -->
+                <path d="M100,30 A55,55 0 0,1 150,60 Q120,70 100,30 Z" fill="var(--cat-spot)" />
+                
+                <!-- 左耳 -->
+                <polygon points="55,50 35,10 85,35" fill="var(--cat-primary)" />
+                <polygon points="55,45 42,20 78,35" fill="var(--cat-ear-inner)" />
+                <!-- 右耳 -->
+                <polygon points="145,50 165,10 115,35" fill="var(--cat-spot)" />
+                <polygon points="145,45 158,20 122,35" fill="var(--cat-ear-inner)" />
+                
+                <!-- 目と口のグループ（表情変更用） -->
+                <g id="face-group" class="eye-anim">
+                    <!-- 通常の目 -->
+                    <circle id="eye-l" cx="75" cy="90" r="7" fill="#374151" />
+                    <circle id="eye-r" cx="125" cy="90" r="7" fill="#374151" />
+                    <!-- 閉じた目（最初は非表示） -->
+                    <path id="eye-closed-l" d="M68,90 Q75,85 82,90" stroke="#374151" stroke-width="3" fill="none" stroke-linecap="round" class="hidden" />
+                    <path id="eye-closed-r" d="M118,90 Q125,85 132,90" stroke="#374151" stroke-width="3" fill="none" stroke-linecap="round" class="hidden" />
+                    
+                    <!-- 口 (ω) -->
+                    <path id="mouth" d="M90,105 Q95,112 100,105 Q105,112 110,105" stroke="#374151" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                    
+                    <!-- ほっぺ -->
+                    <ellipse cx="60" cy="100" rx="8" ry="5" fill="var(--cat-ear-inner)" opacity="0.7" />
+                    <ellipse cx="140" cy="100" rx="8" ry="5" fill="var(--cat-ear-inner)" opacity="0.7" />
+
+                    <!-- ひげ -->
+                    <path d="M40,90 L20,85 M40,100 L15,100 M45,110 L25,115" stroke="rgba(0,0,0,0.2)" stroke-width="2" stroke-linecap="round" />
+                    <path d="M160,90 L180,85 M160,100 L185,100 M155,110 L175,115" stroke="rgba(0,0,0,0.2)" stroke-width="2" stroke-linecap="round" />
+                </g>
+            </svg>
+        </div>
+
+    </main>
+
+    <!-- ボトムコントロールパネル -->
+    <footer class="w-full max-w-lg glass-panel rounded-3xl p-6 z-10">
+        
+        <!-- ステータスバー -->
+        <div class="space-y-4 mb-6">
+            <!-- おなかメーター -->
+            <div>
+                <div class="flex justify-between text-sm font-bold text-gray-600 mb-1">
+                    <span>🍖 おなか</span>
+                    <span id="hunger-text">50%</span>
+                </div>
+                <div class="h-4 w-full bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                    <div id="hunger-bar" class="h-full bg-amber-400 progress-bar-inner w-[50%]"></div>
+                </div>
+            </div>
+            <!-- ごきげんメーター -->
+            <div>
+                <div class="flex justify-between text-sm font-bold text-gray-600 mb-1">
+                    <span>💖 ごきげん</span>
+                    <span id="mood-text">50%</span>
+                </div>
+                <div class="h-4 w-full bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                    <div id="mood-bar" class="h-full bg-rose-400 progress-bar-inner w-[50%]"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- アクションボタン -->
+        <div class="grid grid-cols-3 gap-3 sm:gap-4">
+            <button onclick="feed()" class="group relative bg-white border-2 border-amber-200 hover:border-amber-400 rounded-2xl p-3 flex flex-col items-center justify-center transition-all transform active:scale-95 shadow-md hover:shadow-lg">
+                <span class="text-3xl mb-1 group-hover:animate-bounce">🐟</span>
+                <span class="text-xs font-bold text-amber-700">ごはん</span>
+            </button>
+            <button onclick="play()" class="group relative bg-white border-2 border-blue-200 hover:border-blue-400 rounded-2xl p-3 flex flex-col items-center justify-center transition-all transform active:scale-95 shadow-md hover:shadow-lg">
+                <span class="text-3xl mb-1 group-hover:animate-bounce">🧶</span>
+                <span class="text-xs font-bold text-blue-700">あそぶ</span>
+            </button>
+            <button onclick="pet()" class="group relative bg-white border-2 border-rose-200 hover:border-rose-400 rounded-2xl p-3 flex flex-col items-center justify-center transition-all transform active:scale-95 shadow-md hover:shadow-lg">
+                <span class="text-3xl mb-1 group-hover:animate-bounce">🖐️</span>
+                <span class="text-xs font-bold text-rose-700">なでる</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- レベルアップ時のオーバーレイ -->
+    <div id="level-up-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center hidden z-50 transition-opacity opacity-0 duration-300">
+        <div class="bg-white p-8 rounded-3xl text-center transform scale-90 transition-transform duration-300 shadow-2xl border-4 border-yellow-300" id="modal-content">
+            <div class="text-6xl mb-4 animate-bounce">🎉</div>
+            <h2 class="text-3xl font-black text-pink-500 mb-2">レベルアップ！</h2>
+            <p class="text-gray-600 font-bold mb-6">ネコとのなかよし度が上がったよ！</p>
+            <button onclick="closeModal()" class="bg-gradient-to-r from-pink-400 to-rose-400 text-white px-8 py-3 rounded-full font-bold shadow-lg transform hover:scale-105 active:scale-95 transition-all w-full">
+                やったね！
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- 状態管理 ---
+        let state = {
+            hunger: 50,
+            mood: 50,
+            level: 1,
+            exp: 0,
+            maxExp: 100
+        };
+
+        // --- DOM要素 ---
+        const hungerBar = document.getElementById('hunger-bar');
+        const hungerText = document.getElementById('hunger-text');
+        const moodBar = document.getElementById('mood-bar');
+        const moodText = document.getElementById('mood-text');
+        const expBar = document.getElementById('exp-bar');
+        const expText = document.getElementById('exp-text');
+        const levelText = document.getElementById('level-text');
+        const speechBubble = document.getElementById('speech-bubble');
+        const catSvg = document.getElementById('cat-svg');
+        const catWrapper = document.getElementById('cat-wrapper');
+        
+        // 表情用DOM
+        const eyeL = document.getElementById('eye-l');
+        const eyeR = document.getElementById('eye-r');
+        const eyeClosedL = document.getElementById('eye-closed-l');
+        const eyeClosedR = document.getElementById('eye-closed-r');
+        const mouth = document.getElementById('mouth');
+
+        // ネコのセリフ辞書
+        const dialogues = {
+            normal: ["にゃーん♪", "ゴロゴロ...", "のび〜", "じーっ..."],
+            hungry: ["おなかすいたにゃ...", "ごはんまだ？", "きゅるるる..."],
+            bored: ["ひまだにゃー", "あそんでにゃ！", "かまって..."],
+            happy: ["うれしいにゃ！", "サイコーだにゃ！", "だいすきにゃ♡"],
+            eating: ["むしゃむしゃ...", "おいしいにゃ！"],
+            playing: ["つかまえるにゃ！", "たのしいにゃー！"]
+        };
+
+        // --- ゲームループ（時間経過でステータス低下） ---
+        setInterval(() => {
+            state.hunger = Math.max(0, state.hunger - 2);
+            state.mood = Math.max(0, state.mood - 1);
+            updateUI();
+            checkStatusAndSpeak();
+        }, 5000); // 5秒ごとに減少
+
+        // 定期的にランダムなセリフを喋る
+        setInterval(() => {
+            if(Math.random() > 0.5) checkStatusAndSpeak();
+        }, 8000);
+
+
+        // --- アクション関数 ---
+
+        function feed() {
+            if (state.hunger >= 100) {
+                speak("もうおなかいっぱいだにゃ！");
+                setFace('normal');
+                return;
+            }
+            state.hunger = Math.min(100, state.hunger + 30);
+            state.mood = Math.min(100, state.mood + 5);
+            addExp(10);
+            
+            triggerAnimation('jump');
+            createParticles('🐟', 5);
+            speak(getRandomItem(dialogues.eating));
+            setFace('happy');
+            updateUI();
+        }
+
+        function play() {
+            if (state.hunger < 20) {
+                speak("おなかすいて動けないにゃ...");
+                setFace('sad');
+                return;
+            }
+            if (state.mood >= 100) {
+                speak("もうまんぞくだにゃ！");
+                return;
+            }
+            state.hunger = Math.max(0, state.hunger - 10); // 遊ぶとお腹が減る
+            state.mood = Math.min(100, state.mood + 30);
+            addExp(15);
+            
+            triggerAnimation('jump');
+            createParticles('✨', 8);
+            speak(getRandomItem(dialogues.playing));
+            setFace('happy');
+            updateUI();
+        }
+
+        function pet() {
+            state.mood = Math.min(100, state.mood + 10);
+            addExp(5);
+            
+            createParticles('💖', 3);
+            speak("ゴロゴロ...");
+            setFace('happy');
+            updateUI();
+        }
+
+        // ネコをクリック/タップでも「なでる」
+        catWrapper.addEventListener('pointerdown', (e) => {
+            // クリック位置を中心にパーティクルを出す
+            const rect = catWrapper.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            pet();
+            createParticlesAt('💕', 1, x, y);
+        });
+
+
+        // --- UI更新・制御ロジック ---
+
+        function updateUI() {
+            // おなかバー
+            hungerBar.style.width = `${state.hunger}%`;
+            hungerText.innerText = `${Math.floor(state.hunger)}%`;
+            updateBarColor(hungerBar, state.hunger);
+
+            // ごきげんバー
+            moodBar.style.width = `${state.mood}%`;
+            moodText.innerText = `${Math.floor(state.mood)}%`;
+            updateBarColor(moodBar, state.mood);
+
+            // 経験値バー
+            expBar.style.width = `${(state.exp / state.maxExp) * 100}%`;
+            expText.innerText = `${state.exp} / ${state.maxExp} EXP`;
+            levelText.innerText = `Lv.${state.level}`;
+
+            // 表情の自動調整
+            if (state.hunger < 20 || state.mood < 20) {
+                setFace('sad');
+            } else if (state.hunger > 80 && state.mood > 80) {
+                setFace('happy');
+            } else {
+                setFace('normal');
+            }
+        }
+
+        function updateBarColor(barElement, value) {
+            barElement.className = 'h-full progress-bar-inner ' + 
+                (value < 20 ? 'bg-red-500' : 
+                 value < 50 ? 'bg-yellow-400' : 
+                 barElement.id === 'hunger-bar' ? 'bg-emerald-400' : 'bg-rose-400');
+        }
+
+        function addExp(amount) {
+            state.exp += amount;
+            if (state.exp >= state.maxExp) {
+                state.level++;
+                state.exp = state.exp - state.maxExp;
+                state.maxExp = Math.floor(state.maxExp * 1.2); // 次のレベル必要経験値増加
+                showLevelUp();
+            }
+        }
+
+        function speak(text) {
+            // アニメーションをリセットして再再生
+            speechBubble.classList.remove('bubble-enter');
+            void speechBubble.offsetWidth; // reflow
+            speechBubble.innerText = text;
+            
+            // しっぽを再追加
+            const tail = document.createElement('div');
+            tail.className = "absolute w-4 h-4 bg-white/70 border-r border-b border-white/50 backdrop-blur-md transform rotate-45 -bottom-2 left-1/2 -translate-x-1/2";
+            speechBubble.appendChild(tail);
+            
+            speechBubble.classList.add('bubble-enter');
+        }
+
+        function checkStatusAndSpeak() {
+            if (state.hunger < 30) {
+                speak(getRandomItem(dialogues.hungry));
+            } else if (state.mood < 30) {
+                speak(getRandomItem(dialogues.bored));
+            } else if (state.hunger > 80 && state.mood > 80) {
+                speak(getRandomItem(dialogues.happy));
+            } else {
+                speak(getRandomItem(dialogues.normal));
+            }
+        }
+
+        // --- 表情変更 ---
+        function setFace(type) {
+            if(type === 'happy') {
+                // 目を閉じる（^ ^）
+                eyeL.classList.add('hidden'); eyeR.classList.add('hidden');
+                eyeClosedL.classList.remove('hidden'); eyeClosedR.classList.remove('hidden');
+                // 口を大きく
+                mouth.setAttribute('d', 'M85,105 Q100,125 115,105');
+            } else if (type === 'sad') {
+                // 通常目
+                eyeL.classList.remove('hidden'); eyeR.classList.remove('hidden');
+                eyeClosedL.classList.add('hidden'); eyeClosedR.classList.add('hidden');
+                // 口を下向きに (・_・)
+                mouth.setAttribute('d', 'M95,110 Q100,105 105,110');
+            } else {
+                // normal
+                eyeL.classList.remove('hidden'); eyeR.classList.remove('hidden');
+                eyeClosedL.classList.add('hidden'); eyeClosedR.classList.add('hidden');
+                // 通常の口 (ω)
+                mouth.setAttribute('d', 'M90,105 Q95,112 100,105 Q105,112 110,105');
+            }
+        }
+
+        // --- エフェクト系 ---
+
+        function triggerAnimation(animClass) {
+            catSvg.classList.remove('breathe');
+            catSvg.classList.add(animClass);
+            setTimeout(() => {
+                catSvg.classList.remove(animClass);
+                catSvg.classList.add('breathe');
+            }, 500);
+        }
+
+        function createParticles(emoji, count) {
+            const rect = catWrapper.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            for(let i=0; i<count; i++) {
+                createParticlesAt(emoji, 1, centerX + (Math.random()*60 - 30), centerY + (Math.random()*60 - 30));
+            }
+        }
+
+        function createParticlesAt(emoji, count, x, y) {
+            for(let i=0; i<count; i++) {
+                const p = document.createElement('div');
+                p.innerText = emoji;
+                p.className = 'particle';
+                p.style.left = `${x + (Math.random()*40-20)}px`;
+                p.style.top = `${y + (Math.random()*40-20)}px`;
+                catWrapper.appendChild(p);
+                
+                // アニメーション終了後に削除
+                setTimeout(() => { p.remove(); }, 1000);
+            }
+        }
+
+        function getRandomItem(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        // --- モーダル制御 ---
+        const modal = document.getElementById('level-up-modal');
+        const modalContent = document.getElementById('modal-content');
+
+        function showLevelUp() {
+            modal.classList.remove('hidden');
+            createParticles('✨', 20); // 画面全体にお祝い
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-90');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-90');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // 初期化
+        updateUI();
+
+    </script>
+</body>
+</html>
